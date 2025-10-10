@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Product Matcher</title>
+<style>
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:2em; background:#f5f6fa; color:#333; }
+h1 { text-align:center; color:#2c3e50; }
+form { display:flex; flex-direction: column; align-items:center; gap:1em; margin-bottom:2em; }
+input, button { padding:0.5em 1em; font-size:1em; border-radius:6px; border:1px solid #ccc; width: 300px; }
+button { background:#3498db; color:white; border:none; cursor:pointer; transition:0.3s; }
+button:hover { background:#2980b9; }
+label { font-weight:bold; margin-bottom:0.2em; }
+
+#uploadedImage { display:block; margin:0 auto 2em; max-width:300px; border:2px solid #ddd; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.1); }
+
+.gallery { display:flex; flex-wrap:wrap; gap:1em; justify-content:center; }
+
+.card { background:white; border:1px solid #ddd; border-radius:10px; width:220px; padding:1em; box-shadow:0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s; text-align:center; }
+.card:hover { transform: translateY(-5px); box-shadow:0 8px 12px rgba(0,0,0,0.1); }
+.card img { max-width:100%; border-radius:6px; margin-bottom:0.5em; }
+a { text-decoration:none; color:#3498db; }
+a:hover { text-decoration:underline; }
+
+.spinner { display:none; margin-top:20px; text-align:center; }
+.spinner div { width:50px; height:50px; border:6px solid #ddd; border-top:6px solid #3498db; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 1em; }
+@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+
+#progressBox { text-align:center; margin-top:10px; font-weight:bold; color:#2c3e50; }
+</style>
+</head>
+<body>
+<h1>Ad Matcher Demo</h1>
+<form id="uploadForm" enctype="multipart/form-data">
+  <label>Upload the image you want to match:</label>
+  <input type="file" name="image" required>
+  
+  <label>How many products should I find?</label>
+  <input type="number" name="top_x" value="5" min="1" max="20">
+
+  <label>What URL should I use to search for products?</label>
+  <input type="text" name="target_url" placeholder="Website to scrape" value="https://usa.tommy.com/en/women">
+
+  <button type="submit">Search</button>
+</form>
+
+<img id="uploadedImage" src="" alt="Uploaded Ad Photo" style="display:none;">
+<div class="spinner" id="spinner">
+  <div></div>
+  <p>Scraping products and finding matches...</p>
+</div>
+
+<div id="progressBox"></div>
+<div id="results" class="gallery"></div>
+
+<script>
+const form = document.getElementById("uploadForm");
+const spinner = document.getElementById("spinner");
+const resultsDiv = document.getElementById("results");
+const uploadedImage = document.getElementById("uploadedImage");
+const progressBox = document.getElementById("progressBox");
+
+form.onsubmit = async (e) => {
+  e.preventDefault();
+  resultsDiv.innerHTML = "";
+  progressBox.innerText = "";
+
+  const file = form.elements["image"].files[0];
+  if (file) { 
+    uploadedImage.src = URL.createObjectURL(file); 
+    uploadedImage.style.display = "block"; 
+  }
+
+  spinner.style.display = "block";
+
+  // Open SSE for live scraping progress
+  const evtSource = new EventSource("/progress_stream");
+  evtSource.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    if (data.done) {
+      progressBox.innerText = "✅ Scraping complete!";
+      evtSource.close();
+    } else {
+      progressBox.innerText = `🔍 Scraped ${data.scraped} products...`;
+    }
+  };
+
+  // Submit form to /search for matching
+  const formData = new FormData(form);
+  const res = await fetch("/search", { method:"POST", body:formData });
+  const data = await res.json();
+
+  spinner.style.display = "none";
+
+  if(!data || data.length === 0){ 
+    resultsDiv.innerHTML = "<p>No matches found.</p>"; 
+    return; 
+  }
+
+  data.forEach(item => {
+    const product = item.product;
+    const score = item.score;
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <img src="${product.img_url}" alt="${product.name}">
+      <h4>${product.name}</h4>
+      <p>Score: ${score.toFixed(3)}</p>
+      <a href="${product.link}" target="_blank">View</a>
+    `;
+    resultsDiv.appendChild(card);
+  });
+};
+</script>
+</body>
+</html>
