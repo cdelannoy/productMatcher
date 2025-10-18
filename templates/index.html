@@ -2,74 +2,453 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Product Matcher</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Matcher - AI-Powered Visual Search</title>
 <style>
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin:2em; background:#f5f6fa; color:#333; }
-h1 { text-align:center; color:#2c3e50; }
-form { display:flex; flex-direction: column; align-items:center; gap:1em; margin-bottom:2em; }
-input, button { padding:0.5em 1em; font-size:1em; border-radius:6px; border:1px solid #ccc; width: 300px; }
-button { background:#3498db; color:white; border:none; cursor:pointer; transition:0.3s; }
-button:hover { background:#2980b9; }
-label { font-weight:bold; margin-bottom:0.2em; }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-#uploadedImage { display:block; margin:0 auto 2em; max-width:300px; border:2px solid #ddd; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.1); }
+:root {
+  --primary-blue: #2E7DBE;
+  --light-blue: #5BA3D0;
+  --dark-blue: #1A4D7A;
+  --accent-blue: #87CEEB;
+  --accent-orange: #D97706;
+  --light-orange: #F59E0B;
+  --text-dark: #2C3E50;
+  --text-light: #5A6C7D;
+  --bg-light: #F8FBFD;
+  --white: #FFFFFF;
+}
 
-#results { display:block; width:100%; }
-.gallery { display:flex; flex-wrap:wrap; gap:1em; justify-content:center; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: linear-gradient(135deg, var(--dark-blue) 0%, var(--primary-blue) 100%);
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  color: var(--text-dark);
+}
 
-.card { background:white; border:1px solid #ddd; border-radius:10px; width:220px; padding:1em; box-shadow:0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s; text-align:center; }
-.card:hover { transform: translateY(-5px); box-shadow:0 8px 12px rgba(0,0,0,0.1); }
-.card img { max-width:100%; border-radius:6px; margin-bottom:0.5em; }
-a { text-decoration:none; color:#3498db; }
-a:hover { text-decoration:underline; }
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
 
-.spinner { display:none; margin-top:20px; text-align:center; }
-.spinner div { width:50px; height:50px; border:6px solid #ddd; border-top:6px solid #3498db; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 1em; }
-@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
+/* Header */
+header {
+  text-align: center;
+  margin-bottom: 3rem;
+  color: white;
+}
 
-#progressBox { text-align:center; margin-top:10px; font-weight:bold; color:#2c3e50; }
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.logo {
+  height: 80px;
+  width: auto;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.2));
+}
+
+.header-text {
+  text-align: center;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  opacity: 0.95;
+  font-weight: 300;
+}
+
+@media (max-width: 600px) {
+  .logo {
+    height: 60px;
+  }
+}
+
+/* Form Card */
+.form-card {
+  background: white;
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  margin-bottom: 2rem;
+}
+
+form {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+label {
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 0.95rem;
+}
+
+input[type="file"] {
+  padding: 0.75rem;
+  border: 2px dashed #cbd5e0;
+  border-radius: 12px;
+  background: #f7fafc;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+}
+
+input[type="file"]:hover {
+  border-color: var(--primary-blue);
+  background: #edf2f7;
+}
+
+input[type="number"],
+input[type="text"] {
+  padding: 0.875rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+input[type="number"]:focus,
+input[type="text"]:focus {
+  outline: none;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 3px rgba(46, 125, 190, 0.1);
+}
+
+button {
+  background: linear-gradient(135deg, var(--accent-orange) 0%, var(--light-orange) 100%);
+  color: white;
+  border: none;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(217, 119, 6, 0.4);
+  margin-top: 0.5rem;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.6);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+/* Uploaded Image Preview */
+#uploadedImage {
+  max-width: 100%;
+  width: 100%;
+  border-radius: 12px;
+}
+
+.image-preview-card {
+  background: white;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.image-preview-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+}
+
+/* Spinner */
+.spinner {
+  display: none;
+  text-align: center;
+  margin: 2rem 0;
+}
+
+.spinner-circle {
+  width: 60px;
+  height: 60px;
+  border: 4px solid rgba(255,255,255,0.3);
+  border-top: 4px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.spinner p {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+/* Progress Box */
+#progressBox {
+  text-align: center;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: rgba(255,255,255,0.95);
+  border-radius: 12px;
+  font-weight: 600;
+  color: var(--text-dark);
+  font-size: 1rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Results Section */
+#results {
+  margin-top: 2rem;
+}
+
+.results-header {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 16px;
+  text-align: center;
+  margin-bottom: 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.results-header strong {
+  font-size: 1.3rem;
+  color: var(--primary-blue);
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.results-header .meta {
+  color: var(--text-light);
+  font-size: 0.95rem;
+}
+
+/* Product Gallery */
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+/* Product Cards */
+.card {
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+}
+
+.card-image {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  background: #f7fafc;
+}
+
+.card-content {
+  padding: 1.5rem;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.card h4 {
+  font-size: 1rem;
+  color: #2d3748;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+  flex-grow: 1;
+}
+
+.score-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--accent-orange) 0%, var(--light-orange) 100%);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.card a {
+  display: block;
+  text-align: center;
+  background: #f7fafc;
+  color: var(--primary-blue);
+  text-decoration: none;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.card a:hover {
+  background: var(--primary-blue);
+  color: white;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2rem;
+  }
+
+  .form-card {
+    padding: 1.5rem;
+  }
+
+  .gallery {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+/* Empty State */
+.empty-state {
+  background: white;
+  padding: 3rem 2rem;
+  border-radius: 16px;
+  text-align: center;
+  color: var(--text-light);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.empty-state p {
+  font-size: 1.1rem;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  margin-top: 3rem;
+  color: white;
+  opacity: 0.9;
+}
+
+.footer-tagline {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.5px;
+}
 </style>
 </head>
 <body>
-<h1>Ad Matcher Demo</h1>
-<form id="uploadForm" enctype="multipart/form-data">
-  <label>Upload the image you want to match:</label>
-  <input type="file" name="image" required>
-  
-  <label>How many products should I find?</label>
-  <input type="number" name="top_x" value="5" min="1" max="20">
+<div class="container">
+  <header>
+    <div class="header-content">
+      <img src="/static/logo.png" alt="L'Optimist Logo" class="logo" />
+      <div class="header-text">
+        <h1>🔍 Product Matcher</h1>
+        <p class="subtitle">AI-Powered Visual Search by L'Optimist</p>
+      </div>
+    </div>
+  </header>
 
-  <label>What URL should I use to search for products?</label>
-  <input type="text" name="target_url" placeholder="Website to scrape" value="https://usa.tommy.com/en/women">
+  <div class="form-card">
+    <form id="uploadForm" enctype="multipart/form-data">
+      <div class="form-group">
+        <label for="imageUpload">📸 Upload Image to Match</label>
+        <input type="file" id="imageUpload" name="image" accept="image/*" required>
+      </div>
 
-  <button type="submit">Search</button>
-</form>
+      <div class="form-group">
+        <label for="topX">🎯 Number of Matches</label>
+        <input type="number" id="topX" name="top_x" value="5" min="1" max="20">
+      </div>
 
-<img id="uploadedImage" src="" alt="Uploaded Ad Photo" style="display:none;">
-<div class="spinner" id="spinner">
-  <div></div>
-  <p>Scraping products and finding matches...</p>
+      <div class="form-group">
+        <label for="targetUrl">🌐 Target Website URL</label>
+        <input type="text" id="targetUrl" name="target_url" placeholder="Enter website to search" value="https://usa.tommy.com/en/women">
+      </div>
+
+      <button type="submit">✨ Find Matches</button>
+    </form>
+  </div>
+
+  <div id="uploadedImageContainer" style="display:none;" class="image-preview-card">
+    <p class="image-preview-title">Your Search Image</p>
+    <img id="uploadedImage" src="" alt="Uploaded Image">
+  </div>
+
+  <div class="spinner" id="spinner">
+    <div class="spinner-circle"></div>
+    <p>Finding the best matches for you...</p>
+  </div>
+
+  <div id="progressBox" style="display:none;"></div>
+  <div id="results"></div>
+
+  <footer>
+    <p class="footer-tagline">Automate. Optimize. Evolve.</p>
+    <p>© <span id="year"></span> L'Optimist. All rights reserved.</p>
+  </footer>
 </div>
 
-<div id="progressBox"></div>
-<div id="results" class="gallery"></div>
-
 <script>
+document.getElementById("year").textContent = new Date().getFullYear();
+
 const form = document.getElementById("uploadForm");
 const spinner = document.getElementById("spinner");
 const resultsDiv = document.getElementById("results");
 const uploadedImage = document.getElementById("uploadedImage");
+const uploadedImageContainer = document.getElementById("uploadedImageContainer");
 const progressBox = document.getElementById("progressBox");
 
 form.onsubmit = async (e) => {
   e.preventDefault();
   resultsDiv.innerHTML = "";
+  progressBox.style.display = "none";
   progressBox.innerText = "";
 
   const file = form.elements["image"].files[0];
-  if (file) { 
-    uploadedImage.src = URL.createObjectURL(file); 
-    uploadedImage.style.display = "block"; 
+  if (file) {
+    uploadedImage.src = URL.createObjectURL(file);
+    uploadedImageContainer.style.display = "block";
   }
 
   spinner.style.display = "block";
@@ -78,6 +457,7 @@ form.onsubmit = async (e) => {
   const evtSource = new EventSource("/progress_stream");
   evtSource.onmessage = function(event) {
     const data = JSON.parse(event.data);
+    progressBox.style.display = "flex";
     if (data.done) {
       progressBox.innerText = `✅ ${data.message || 'Complete!'}`;
       evtSource.close();
@@ -101,52 +481,50 @@ form.onsubmit = async (e) => {
     data = await res.json();
   } catch (error) {
     spinner.style.display = "none";
+    progressBox.style.display = "flex";
     progressBox.innerText = "❌ Error: " + error.message;
-    resultsDiv.innerHTML = "<p>An error occurred while searching. Please try again.</p>";
+    resultsDiv.innerHTML = '<div class="empty-state"><p>An error occurred while searching. Please try again.</p></div>';
     return;
   }
 
   spinner.style.display = "none";
 
   // Extract results and metadata
-  const results = data.results || data;  // Support both old and new format
+  const results = data.results || data;
   const totalSearched = data.total_products_searched || results.length;
   const totalCards = data.total_cards_loaded || totalSearched;
   const matchesReturned = data.matches_returned || results.length;
 
   if(!results || results.length === 0){
-    resultsDiv.innerHTML = "<p>No matches found.</p>";
+    resultsDiv.innerHTML = '<div class="empty-state"><p>No matches found. Try a different image or website.</p></div>';
     return;
   }
 
   // Add header showing total products searched and cards loaded
   const headerDiv = document.createElement("div");
-  headerDiv.style.textAlign = "center";
-  headerDiv.style.marginBottom = "1.5em";
-  headerDiv.style.fontSize = "1.1em";
-  headerDiv.style.color = "#2c3e50";
-  headerDiv.style.width = "100%";
+  headerDiv.className = "results-header";
   headerDiv.innerHTML = `
-    <strong>Showing top ${matchesReturned} matches</strong><br>
-    from ${totalSearched} unique products (${totalCards} product cards loaded)
+    <strong>Top ${matchesReturned} Matches Found!</strong>
+    <p class="meta">Analyzed ${totalSearched} unique products from ${totalCards} items</p>
   `;
   resultsDiv.appendChild(headerDiv);
 
-  // Create a wrapper for product cards to ensure they appear below the header
+  // Create a wrapper for product cards
   const cardsWrapper = document.createElement("div");
   cardsWrapper.className = "gallery";
-  cardsWrapper.style.width = "100%";
 
-  results.forEach(item => {
+  results.forEach((item, index) => {
     const product = item.product;
     const score = item.score;
     const card = document.createElement("div");
     card.className = "card";
     card.innerHTML = `
-      <img src="${product.img_url}" alt="${product.name}">
-      <h4>${product.name}</h4>
-      <p>Score: ${score.toFixed(3)}</p>
-      <a href="${product.link}" target="_blank">View</a>
+      <img src="${product.img_url}" alt="${product.name}" class="card-image">
+      <div class="card-content">
+        <h4>${product.name}</h4>
+        <span class="score-badge">Match: ${(score * 100).toFixed(1)}%</span>
+        <a href="${product.link}" target="_blank">View Product →</a>
+      </div>
     `;
     cardsWrapper.appendChild(card);
   });
