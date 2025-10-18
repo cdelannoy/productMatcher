@@ -14,6 +14,7 @@ label { font-weight:bold; margin-bottom:0.2em; }
 
 #uploadedImage { display:block; margin:0 auto 2em; max-width:300px; border:2px solid #ddd; border-radius:8px; box-shadow:0 4px 8px rgba(0,0,0,0.1); }
 
+#results { display:block; width:100%; }
 .gallery { display:flex; flex-wrap:wrap; gap:1em; justify-content:center; }
 
 .card { background:white; border:1px solid #ddd; border-radius:10px; width:220px; padding:1em; box-shadow:0 4px 6px rgba(0,0,0,0.05); transition: transform 0.2s; text-align:center; }
@@ -78,26 +79,65 @@ form.onsubmit = async (e) => {
   evtSource.onmessage = function(event) {
     const data = JSON.parse(event.data);
     if (data.done) {
-      progressBox.innerText = "✅ Scraping complete!";
+      progressBox.innerText = `✅ ${data.message || 'Complete!'}`;
       evtSource.close();
     } else {
-      progressBox.innerText = `🔍 Scraped ${data.scraped} products...`;
+      progressBox.innerText = `🔍 ${data.message || 'Processing...'}`;
     }
+  };
+  evtSource.onerror = function() {
+    console.error('SSE connection error');
+    evtSource.close();
   };
 
   // Submit form to /search for matching
   const formData = new FormData(form);
-  const res = await fetch("/search", { method:"POST", body:formData });
-  const data = await res.json();
+  let data;
+  try {
+    const res = await fetch("/search", { method:"POST", body:formData });
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    data = await res.json();
+  } catch (error) {
+    spinner.style.display = "none";
+    progressBox.innerText = "❌ Error: " + error.message;
+    resultsDiv.innerHTML = "<p>An error occurred while searching. Please try again.</p>";
+    return;
+  }
 
   spinner.style.display = "none";
 
-  if(!data || data.length === 0){ 
-    resultsDiv.innerHTML = "<p>No matches found.</p>"; 
-    return; 
+  // Extract results and metadata
+  const results = data.results || data;  // Support both old and new format
+  const totalSearched = data.total_products_searched || results.length;
+  const totalCards = data.total_cards_loaded || totalSearched;
+  const matchesReturned = data.matches_returned || results.length;
+
+  if(!results || results.length === 0){
+    resultsDiv.innerHTML = "<p>No matches found.</p>";
+    return;
   }
 
-  data.forEach(item => {
+  // Add header showing total products searched and cards loaded
+  const headerDiv = document.createElement("div");
+  headerDiv.style.textAlign = "center";
+  headerDiv.style.marginBottom = "1.5em";
+  headerDiv.style.fontSize = "1.1em";
+  headerDiv.style.color = "#2c3e50";
+  headerDiv.style.width = "100%";
+  headerDiv.innerHTML = `
+    <strong>Showing top ${matchesReturned} matches</strong><br>
+    from ${totalSearched} unique products (${totalCards} product cards loaded)
+  `;
+  resultsDiv.appendChild(headerDiv);
+
+  // Create a wrapper for product cards to ensure they appear below the header
+  const cardsWrapper = document.createElement("div");
+  cardsWrapper.className = "gallery";
+  cardsWrapper.style.width = "100%";
+
+  results.forEach(item => {
     const product = item.product;
     const score = item.score;
     const card = document.createElement("div");
@@ -108,8 +148,10 @@ form.onsubmit = async (e) => {
       <p>Score: ${score.toFixed(3)}</p>
       <a href="${product.link}" target="_blank">View</a>
     `;
-    resultsDiv.appendChild(card);
+    cardsWrapper.appendChild(card);
   });
+
+  resultsDiv.appendChild(cardsWrapper);
 };
 </script>
 </body>
