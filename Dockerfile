@@ -31,6 +31,8 @@ RUN apt-get update && apt-get install -y \
     xdg-utils \
     libu2f-udev \
     libvulkan1 \
+    xvfb \
+    dbus \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -52,6 +54,14 @@ EXPOSE 7860
 # Set environment variables
 ENV FLASK_APP=app.py
 ENV PYTHONUNBUFFERED=1
+ENV DISPLAY=:99
 
-# Run the Flask app on port 7860
-CMD ["python", "-m", "flask", "run", "--host=0.0.0.0", "--port=7860"]
+# Create a startup script that starts xvfb and then runs Flask
+RUN echo '#!/bin/bash\n\
+Xvfb :99 -screen 0 1280x1024x24 &\n\
+sleep 2\n\
+python -m flask run --host=0.0.0.0 --port=7860\n\
+' > /app/start.sh && chmod +x /app/start.sh
+
+# Run the startup script
+CMD ["/app/start.sh"]
