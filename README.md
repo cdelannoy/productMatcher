@@ -6,7 +6,7 @@ colorTo: purple
 sdk: docker
 pinned: false
 license: apache-2.0
-short_description: AI-powered visual product search using CLIP to find similar items on e-commerce sites
+short_description: AI visual search to find similar products on e-commerce sites
 ---
 
 # Product Matcher by L'Optimist
