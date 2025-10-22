@@ -1,138 +1,138 @@
-# Product Matcher App
+---
+title: Product Matcher
+emoji: 🔍
+colorFrom: blue
+colorTo: purple
+sdk: docker
+pinned: false
+license: apache-2.0
+---
 
-A Flask-based web application that uses AI image matching to find the most relevant products from a website based on an uploaded image. The app scrapes product listings from a specified URL and uses OpenAI's CLIP model to find visually similar products.
+# Product Matcher by L'Optimist
+
+An AI-powered visual product search engine that finds similar items on e-commerce websites. Upload any product image and let CLIP (OpenAI's vision model) find visually similar products for you.
 
 ## Features
 
-- Upload an image to search for similar products
-- Scrape products from e-commerce websites
-- Real-time progress updates during scraping and matching
-- Visual similarity scoring using CLIP embeddings
-- Configurable number of top matches to display
+- **Visual Product Search**: Upload any product image to find similar items
+- **AI-Powered Matching**: Uses OpenAI's CLIP model for intelligent visual similarity
+- **Multi-Scale Analysis**: Advanced matching algorithm analyzes images at multiple scales
+- **Diversity Re-Ranking**: Returns diverse results to avoid showing near-duplicate items
+- **Real-Time Progress**: Live updates during scraping and matching process
+- **E-Commerce Integration**: Built-in scraper for Tommy Hilfiger and adaptable to other sites
 
-## Important Note: Browser Visibility
+## Technology Stack
 
-To bypass bot detection on sites like Tommy Hilfiger, the scraper runs with a **visible browser window** (non-headless mode). This is necessary because many e-commerce sites block headless browsers.
+- **Flask**: Web framework for the application
+- **PyTorch + CLIP**: Deep learning model for visual similarity
+- **Playwright**: Automated web scraping with Chromium
+- **PIL (Pillow)**: Image processing and manipulation
+- **Docker**: Containerized deployment
 
-**What this means:**
-- A Chrome browser window will open and be visible during scraping
-- The browser will automatically close when scraping is complete
-- Do not close the browser window manually while scraping is in progress
+## Quick Start
 
-**Working sites:**
-- https://usa.tommy.com/en/women (requires non-headless mode)
-- https://www.scrapingcourse.com/ecommerce/ (demo site)
-- Most e-commerce sites work with non-headless mode
+This app is designed to run on **Hugging Face Spaces** with Docker. For local development:
 
-For production use in the background, consider using official APIs provided by e-commerce platforms instead of web scraping.
+### Local Development
 
-## Requirements
-
-- Python 3.8+
-- Node.js (for Playwright browser automation)
-
-## Installation
-
-1. Clone the repository:
+1. **Clone the repository:**
 ```bash
-git clone https://github.com/cdelannoy/webTommy.git
-cd webTommy
+git clone https://github.com/cdelannoy/productMatcher.git
+cd productMatcher
 ```
 
-2. Create and activate a virtual environment:
+2. **Create and activate a virtual environment:**
 ```bash
 python -m venv .venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 ```
 
-3. Install Python dependencies:
+3. **Install dependencies:**
 ```bash
 pip install -r requirements.txt
-```
-
-**Note**: If you encounter an SSL certificate error when installing CLIP, you may need to uninstall the wrong `clip` package and install the correct one:
-```bash
-pip uninstall -y clip
-pip install git+https://github.com/openai/CLIP.git
-```
-
-4. Install Playwright browsers:
-```bash
 playwright install chromium
 ```
 
-## Usage
-
-1. Start the Flask server:
+4. **Run the app:**
 ```bash
 python app.py
 ```
 
-2. Open your browser and navigate to:
+5. **Open in browser:**
 ```
 http://localhost:5000
 ```
 
-3. Upload an image of a product you want to find
-4. Specify the number of matches you want (default: 5)
-5. Enter the URL of the website to search (default: Tommy Hilfiger women's section)
-6. Click "Search" and wait for the results
+### Docker Deployment
+
+```bash
+docker build -t product-matcher .
+docker run -p 5000:7860 product-matcher
+```
+
+## How to Use
+
+1. **Upload an Image**: Choose a product image you want to find matches for
+2. **Set Top X**: Select how many similar products you want to see (default: 5)
+3. **Target URL**: Use the default (Tommy Hilfiger) or enter a different e-commerce site
+4. **Search**: Click search and watch real-time progress as the app works
+5. **View Results**: See the most similar products with similarity scores
 
 ## How It Works
 
-1. **Image Upload**: User uploads a reference image
-2. **Web Scraping**: The app uses Playwright to:
-   - Navigate to the specified URL
-   - Accept cookies
-   - Scroll through the page to load all lazy-loaded products
-   - Extract product names, images, and links
-3. **Image Matching**: For each product:
-   - Download the product image
-   - Generate CLIP embeddings for both the reference and product images
-   - Calculate cosine similarity between embeddings
-4. **Display Results**: Show the top N most similar products with their similarity scores
+### 1. Web Scraping
+The app uses Playwright with Chromium to:
+- Navigate to the target e-commerce website
+- Accept cookies and handle popups
+- Scroll through the page to load lazy-loaded content
+- Extract product names, images, and links
+
+### 2. Multi-Scale Embeddings
+For both the query image and each product:
+- Generate CLIP embeddings at multiple scales (global, regions, crops)
+- Capture both overall appearance and fine details
+- Create comprehensive visual representations
+
+### 3. Advanced Similarity Matching
+- Compute weighted similarity scores across all scales
+- Combine global similarity with regional matches
+- Rank products by visual similarity to the query image
+
+### 4. Diversity Re-Ranking
+- Filter out near-duplicate results
+- Ensure diverse product recommendations
+- Return the top X most relevant and varied matches
 
 ## Configuration
 
-### Changing the Target Website
+### Adapting to Other Websites
 
-The scraper is configured for Tommy Hilfiger's website by default. To adapt it for other websites:
+The scraper is configured for Tommy Hilfiger by default. To adapt for other sites:
 
 1. Open [scraper.py](scraper.py)
-2. Modify the CSS selector in line 47: `a.pdpurl` to match the product elements on your target site
-3. Adjust the image selector logic (lines 59-64) to match your target site's structure
+2. Update the CSS selectors for product elements (line ~47)
+3. Adjust image extraction logic (lines ~59-64)
+4. Modify scroll behavior if needed (lines ~36-39)
 
-### Adjusting Scraping Behavior
+### Performance Tuning
 
-- **Scroll wait time**: Modify `time.sleep(5)` in [scraper.py:39](scraper.py#L39) to adjust pause between scrolls
-- **Max scrolls**: Change `max_scrolls = 20` in [scraper.py:36](scraper.py#L36) to limit scrolling
-- **Progress updates**: Adjust the frequency in [scraper.py:75](scraper.py#L75) (currently every 10 products)
+- **Scraping speed**: Adjust `max_scrolls` and `time.sleep()` in [scraper.py](scraper.py)
+- **Matching accuracy**: Modify diversity weight in [improved_matcher.py](improved_matcher.py)
+- **Memory usage**: Consider reducing batch size for large product catalogs
 
-### Matching Settings
+## Use Cases
 
-- **Timeout for image downloads**: Change `timeout=10` in [app.py:99](app.py#L99)
-- **Progress update frequency**: Modify the interval in [app.py:106](app.py#L106) (currently every 5 products)
+- **Fashion Retail**: Find similar clothing items across different brands
+- **Interior Design**: Match furniture and decor pieces
+- **Market Research**: Analyze product positioning and visual trends
+- **Personal Shopping**: Help customers discover alternatives and variations
 
-## Troubleshooting
+## Notes
 
-### Playwright Installation Issues
-
-If you encounter issues with Playwright:
-```bash
-playwright install-deps
-playwright install chromium
-```
-
-### CLIP Model Issues
-
-The CLIP model will be downloaded on first run. Ensure you have a stable internet connection and sufficient disk space (~350MB).
-
-### Scraping Issues
-
-If the scraper returns no products:
-- Check that the target URL is accessible
-- Verify the CSS selectors match the website's structure
-- Try increasing the scroll wait time in [scraper.py](scraper.py)
+- The CLIP model (~350MB) downloads automatically on first run
+- Playwright installs Chromium browser for web scraping
+- Processing time varies based on the number of products on the target page
+- For production use, consider rate limiting and respecting robots.txt
 
 ## License
 
@@ -140,4 +140,8 @@ ISC
 
 ## Author
 
-Constance Delannoy
+Constance Delannoy | [L'Optimist](https://l-optimist.com)
+
+---
+
+*Built with Flask, PyTorch, and OpenAI's CLIP model*

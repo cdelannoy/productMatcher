@@ -6,17 +6,41 @@ venv/
 *.egg-info/
 dist/
 build/
+*.py[cod]
+*$py.class
+*.so
 
-# Playwright
-node_modules/
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/playwright/.auth/
+# Virtual environments
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
 # macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Test files
+tests/
+test_*.py
+*_test.py
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
 
 # Project specific
 files/
+static/uploads/
+
+# Docker (local only)
+.dockerignore

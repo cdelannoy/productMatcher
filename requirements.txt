@@ -1,7 +1,12 @@
 flask>=3.0.0
 pillow>=10.0.0
-torch>=2.0.0
-git+https://github.com/openai/CLIP.git
-requests>=2.31.0
-playwright>=1.40.0
 numpy>=1.24.0
+requests>=2.31.0
+torch>=2.0.0
+torchvision>=0.15.0
+ftfy
+regex
+tqdm
+git+https://github.com/openai/CLIP.git
+playwright>=1.40.0
+gunicorn>=21.2.0
