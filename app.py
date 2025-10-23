@@ -70,6 +70,7 @@ def search():
         ad_file = request.files["image"]
         top_x = int(request.form.get("top_x", 5))
         target_url = request.form.get("target_url", "https://usa.tommy.com/en/women")
+        deduplicate = request.form.get("deduplicate") == "on"  # Checkbox value
 
         # Reset progress
         with progress_lock:
@@ -137,9 +138,13 @@ def search():
         # Sort by score
         results.sort(key=lambda x: x["score"], reverse=True)
 
-        # Apply diversity re-ranking to avoid showing very similar items
-        print(f"🔄 Re-ranking top results for diversity...")
-        results_top = rerank_with_diversity(results, top_k=top_x, diversity_weight=0.2)
+        # Apply diversity re-ranking if requested
+        if deduplicate:
+            print(f"🔄 Re-ranking top results for diversity...")
+            results_top = rerank_with_diversity(results, top_k=top_x, diversity_weight=0.2)
+        else:
+            print(f"📋 Returning top {top_x} results without deduplication...")
+            results_top = results[:top_x]
 
         # Mark as done
         with progress_lock:
