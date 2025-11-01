@@ -76,17 +76,17 @@ def scrape_us_tommy(url="https://usa.tommy.com/en/women", progress_callback=None
 
             previous_product_count = 0
             scroll_attempts = 0
-            max_scrolls = 100  # Increased for 1410 products
+            max_scrolls = 200  # Increased to handle 1500+ products
             no_new_products_count = 0
 
             while scroll_attempts < max_scrolls:
                 # Scroll to bottom in multiple steps (more realistic)
                 for _ in range(3):
                     page.evaluate("window.scrollBy(0, 500)")
-                    time.sleep(0.5)
+                    time.sleep(0.3)  # Faster scrolling
 
                 # Wait for lazy loading
-                time.sleep(2)
+                time.sleep(1.5)  # Slightly faster
 
                 # Check current product count
                 current_product_count = len(page.query_selector_all("a.pdpurl"))
@@ -96,7 +96,7 @@ def scrape_us_tommy(url="https://usa.tommy.com/en/women", progress_callback=None
                     print(f"  Scroll #{scroll_attempts + 1}: {current_product_count} product cards loaded")
                     no_new_products_count = 0
 
-                    if progress_callback and current_product_count % 50 == 0:
+                    if progress_callback and current_product_count % 100 == 0:
                         progress_callback({
                             "count": current_product_count,
                             "done": False,
@@ -105,8 +105,8 @@ def scrape_us_tommy(url="https://usa.tommy.com/en/women", progress_callback=None
                 else:
                     no_new_products_count += 1
 
-                # Stop if no new products for 10 consecutive scrolls
-                if no_new_products_count >= 10:
+                # Stop if no new products for 15 consecutive scrolls (more patient)
+                if no_new_products_count >= 15:
                     print(f"✅ No new products after {no_new_products_count} scrolls")
                     print(f"   Total product cards loaded: {current_product_count}")
                     break

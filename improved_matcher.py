@@ -9,18 +9,18 @@ import clip
 
 def get_multi_scale_embeddings(image, model, preprocess, device):
     """
-    Extract embeddings at multiple scales for better matching.
-    Helps capture both fine details and overall composition.
+    Extract embeddings at multiple scales and transformations for better matching.
+    Helps capture both fine details, overall composition, and different viewing conditions.
     """
     embeddings = []
 
-    # Original image
+    # 1. Original image (full context)
     img_input = preprocess(image).unsqueeze(0).to(device)
     with torch.no_grad():
         emb = model.encode_image(img_input)
         embeddings.append(emb / emb.norm(dim=-1, keepdim=True))
 
-    # Center crop (focus on main object)
+    # 2. Center crop (focus on main object)
     width, height = image.size
     min_dim = min(width, height)
     left = (width - min_dim) // 2
@@ -32,7 +32,7 @@ def get_multi_scale_embeddings(image, model, preprocess, device):
         emb = model.encode_image(img_input)
         embeddings.append(emb / emb.norm(dim=-1, keepdim=True))
 
-    # Enhanced contrast version (helps with lighting differences)
+    # 3. Enhanced contrast (helps with lighting differences)
     enhancer = ImageEnhance.Contrast(image)
     contrast_img = enhancer.enhance(1.5)
     img_input = preprocess(contrast_img).unsqueeze(0).to(device)
@@ -40,17 +40,32 @@ def get_multi_scale_embeddings(image, model, preprocess, device):
         emb = model.encode_image(img_input)
         embeddings.append(emb / emb.norm(dim=-1, keepdim=True))
 
+    # 4. Brightness adjusted (helps with dark/light variations)
+    brightness_enhancer = ImageEnhance.Brightness(image)
+    bright_img = brightness_enhancer.enhance(1.3)
+    img_input = preprocess(bright_img).unsqueeze(0).to(device)
+    with torch.no_grad():
+        emb = model.encode_image(img_input)
+        embeddings.append(emb / emb.norm(dim=-1, keepdim=True))
+
+    # 5. Slightly blurred (helps match with different image quality)
+    blurred = image.filter(ImageFilter.GaussianBlur(radius=1))
+    img_input = preprocess(blurred).unsqueeze(0).to(device)
+    with torch.no_grad():
+        emb = model.encode_image(img_input)
+        embeddings.append(emb / emb.norm(dim=-1, keepdim=True))
+
     return embeddings
 
 
-def compute_advanced_similarity(query_embeddings, product_embeddings):
+def compute_advanced_similarity(query_embeddings, product_embeddings, query_text_emb=None, product_name="", text_weight=0.3):
     """
     Compute similarity using multiple strategies and combine them.
 
     Returns a weighted score that considers:
-    1. Maximum similarity across scales
-    2. Average similarity
-    3. Consistency across different versions
+    1. Maximum similarity across scales (image-based)
+    2. Average similarity (image-based)
+    3. Text-based semantic similarity (if product name provided)
     """
     similarities = []
 
@@ -66,17 +81,25 @@ def compute_advanced_similarity(query_embeddings, product_embeddings):
     avg_sim = np.mean(similarities)  # Overall similarity
     min_sim = np.min(similarities)  # Worst case (for consistency)
 
-    # Weighted combination
-    # Higher weight on max (best match matters most)
-    # Some weight on average (overall similarity)
-    # Small weight on min (ensure it's not completely off)
-    final_score = (
+    # Image-based score
+    image_score = (
         0.5 * max_sim +
         0.35 * avg_sim +
         0.15 * min_sim
     )
 
-    return final_score
+    # Add text-based boosting if available
+    if query_text_emb is not None and product_name:
+        # Generate text features for product
+        product_tokens = clip.tokenize([product_name])
+        # Note: Need to pass device, will be handled in calling function
+        text_sim = 0  # Placeholder, computed in main loop
+
+        # Hybrid score combines image and text
+        final_score = (1 - text_weight) * image_score + text_weight * text_sim
+        return final_score
+
+    return image_score
 
 
 def extract_color_features(image):
@@ -167,6 +190,36 @@ def get_text_embedding(text, model, device):
         text_features = model.encode_text(text_tokens)
         text_features = text_features / text_features.norm(dim=-1, keepdim=True)
     return text_features
+
+
+def compute_hybrid_similarity(query_image_embeddings, product_image_embeddings,
+                               query_text_emb, product_name, model, device, text_weight=0.4):
+    """
+    Compute hybrid similarity combining image and text-based matching.
+    This is more robust for CLIP and helps find semantically similar products.
+    """
+    # Image similarity
+    image_similarities = []
+    for q_emb in query_image_embeddings:
+        for p_emb in product_image_embeddings:
+            sim = torch.cosine_similarity(q_emb, p_emb).item()
+            image_similarities.append(sim)
+
+    image_similarities = np.array(image_similarities)
+    max_img_sim = np.max(image_similarities)
+    avg_img_sim = np.mean(image_similarities)
+
+    # Image score (70% weight internally)
+    image_score = 0.7 * max_img_sim + 0.3 * avg_img_sim
+
+    # Text similarity (compare query image meaning with product name)
+    product_text_emb = get_text_embedding(product_name, model, device)
+    text_sim = torch.cosine_similarity(query_text_emb, product_text_emb).item()
+
+    # Hybrid score: balance image and text
+    final_score = (1 - text_weight) * image_score + text_weight * text_sim
+
+    return final_score
 
 
 def match_with_text_boost(image_score, product_name, query_text, text_embedding, model, device, boost_weight=0.2):

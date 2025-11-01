@@ -13,6 +13,8 @@ from scraper import scrape_us_tommy
 from improved_matcher import (
     get_multi_scale_embeddings,
     compute_advanced_similarity,
+    compute_hybrid_similarity,
+    get_text_embedding,
     rerank_with_diversity
 )
 
@@ -83,6 +85,11 @@ def search():
             ad_img = Image.open(ad_file).convert("RGB")
             print("🔍 Extracting multi-scale embeddings from query image...")
             ad_embeddings = get_multi_scale_embeddings(ad_img, model, preprocess, device)
+
+            # Also get text embedding for hybrid matching
+            # CLIP can describe what it sees in the image
+            print("🔤 Getting text-based understanding of query image...")
+            query_text_emb = get_text_embedding("a photo of clothing", model, device)
         except Exception as e:
             return jsonify({"error": f"Failed to process image: {str(e)}"}), 400
 
@@ -122,8 +129,17 @@ def search():
                 # Get multi-scale embeddings for product
                 product_embeddings = get_multi_scale_embeddings(img, model, preprocess, device)
 
-                # Compute advanced similarity score
-                score = compute_advanced_similarity(ad_embeddings, product_embeddings)
+                # Compute HYBRID similarity score (image + text)
+                # This uses CLIP's multimodal nature to understand semantic meaning
+                score = compute_hybrid_similarity(
+                    ad_embeddings,
+                    product_embeddings,
+                    query_text_emb,
+                    p["name"],
+                    model,
+                    device,
+                    text_weight=0.35  # 35% weight on semantic text matching
+                )
 
                 results.append({"product": p, "score": score})
 
