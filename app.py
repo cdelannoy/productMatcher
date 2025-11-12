@@ -10,6 +10,10 @@ import json
 import ssl
 from playwright.sync_api import sync_playwright
 from scraper import scrape_us_tommy
+from scraper_asos import scrape_asos_women, scrape_asos_men, scrape_asos
+from scraper_hm import scrape_hm, scrape_hm_women_new, scrape_hm_men_new
+from scraper_fakestore_api import scrape_fakestore_api, scrape_fakestore_womens, scrape_fakestore_all_clothing
+from scraper_shopify import scrape_shopify_url, scrape_bouldergear_womens
 from improved_matcher import (
     get_multi_scale_embeddings,
     compute_advanced_similarity,
@@ -71,7 +75,7 @@ def search():
 
         ad_file = request.files["image"]
         top_x = int(request.form.get("top_x", 5))
-        target_url = request.form.get("target_url", "https://usa.tommy.com/en/women")
+        target_url = request.form.get("target_url", "bouldergear.com")
         deduplicate = request.form.get("deduplicate") == "on"  # Checkbox value
 
         # Reset progress
@@ -98,8 +102,26 @@ def search():
             with progress_lock:
                 progress_data.update(data)
 
-        print(f"Scraping products from {target_url} ...")
-        scraper_result = scrape_us_tommy(target_url, progress_callback=update_progress)
+        print(f"Scraping products from: {target_url} ...")
+        # Route to appropriate scraper based on URL
+        if "bouldergear.com" in target_url:
+            # Boulder Gear Shopify API - fast and reliable!
+            scraper_result = scrape_bouldergear_womens(progress_callback=update_progress)
+        elif ".myshopify.com" in target_url or any(domain in target_url for domain in ["allbirds", "gymshark", "fashionnova"]):
+            # Generic Shopify scraper for any Shopify store
+            scraper_result = scrape_shopify_url(target_url, progress_callback=update_progress)
+        elif "fakestoreapi.com" in target_url or target_url == "fakestore":
+            # Fake Store API for testing
+            scraper_result = scrape_fakestore_womens(progress_callback=update_progress)
+        elif "hm.com" in target_url:
+            scraper_result = scrape_hm(target_url, progress_callback=update_progress)
+        elif "asos.com" in target_url:
+            scraper_result = scrape_asos(target_url, progress_callback=update_progress)
+        elif "tommy.com" in target_url:
+            scraper_result = scrape_us_tommy(target_url, progress_callback=update_progress)
+        else:
+            # Default to Boulder Gear Shopify for unknown URLs
+            scraper_result = scrape_bouldergear_womens(progress_callback=update_progress)
 
         # Extract products and metadata from scraper result
         products = scraper_result.get("products", [])
@@ -123,8 +145,28 @@ def search():
 
         for idx, p in enumerate(products):
             try:
-                resp = requests.get(p["img_url"], timeout=10)
-                img = Image.open(BytesIO(resp.content)).convert("RGB")
+                # Retry logic for ASOS CDN timeouts and image errors
+                img = None
+                for attempt in range(3):
+                    try:
+                        resp = requests.get(p["img_url"], timeout=30)
+                        img = Image.open(BytesIO(resp.content)).convert("RGB")
+                        break
+                    except requests.Timeout:
+                        if attempt == 2:
+                            print(f"⚠️ Skipping product after 3 timeouts: {p.get('name', 'unknown')[:60]}")
+                            img = None
+                            break
+                        print(f"   Retry {attempt + 1}/3 for {p.get('name', 'unknown')[:40]}...")
+                        time.sleep(1)
+                    except Exception as img_error:
+                        # Handle invalid image data
+                        print(f"⚠️ Invalid image data for {p.get('name', 'unknown')[:60]}: {str(img_error)[:50]}")
+                        img = None
+                        break
+
+                if img is None:
+                    continue
 
                 # Get multi-scale embeddings for product
                 product_embeddings = get_multi_scale_embeddings(img, model, preprocess, device)

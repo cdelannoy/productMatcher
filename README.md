@@ -20,7 +20,7 @@ An AI-powered visual product search engine that finds similar items on e-commerc
 - **Multi-Scale Analysis**: Advanced matching algorithm analyzes images at multiple scales
 - **Diversity Re-Ranking**: Returns diverse results to avoid showing near-duplicate items
 - **Real-Time Progress**: Live updates during scraping and matching process
-- **E-Commerce Integration**: Built-in scraper for Tommy Hilfiger and adaptable to other sites
+- **E-Commerce Integration**: Built-in scraper for ASOS (default) and Tommy Hilfiger, adaptable to other sites
 
 ## Technology Stack
 
@@ -75,9 +75,11 @@ docker run -p 5000:7860 product-matcher
 
 1. **Upload an Image**: Choose a product image you want to find matches for
 2. **Set Top X**: Select how many similar products you want to see (default: 5)
-3. **Target URL**: Use the default (Tommy Hilfiger) or enter a different e-commerce site
+3. **Target URL**: Use the default (ASOS Women's New Arrivals) or enter a different e-commerce site
 4. **Search**: Click search and watch real-time progress as the app works
 5. **View Results**: See the most similar products with similarity scores
+
+**Note**: ASOS is now the default scraping target as it's more reliable and doesn't have the same aggressive bot detection as Tommy Hilfiger.
 
 ## How It Works
 
@@ -108,12 +110,15 @@ For both the query image and each product:
 
 ### Adapting to Other Websites
 
-The scraper is configured for Tommy Hilfiger by default. To adapt for other sites:
+The app includes two scrapers:
+- **scraper_asos.py**: ASOS scraper (default) - reliable and fast
+- **scraper.py**: Tommy Hilfiger scraper - more complex due to lazy loading
 
-1. Open [scraper.py](scraper.py)
-2. Update the CSS selectors for product elements (line ~47)
-3. Adjust image extraction logic (lines ~59-64)
-4. Modify scroll behavior if needed (lines ~36-39)
+To adapt for other sites:
+1. Create a new scraper file based on [scraper_asos.py](scraper_asos.py) (simpler) or [scraper.py](scraper.py) (more advanced)
+2. Update CSS selectors for product elements
+3. Adjust image extraction logic for the site's structure
+4. Import and use in [app.py](app.py)
 
 ### Performance Tuning
 
