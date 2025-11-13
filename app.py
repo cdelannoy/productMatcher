@@ -10,6 +10,7 @@ import json
 import ssl
 from playwright.sync_api import sync_playwright
 from scraper import scrape_us_tommy
+from scraper_shopify import scrape_shopify_url, scrape_bouldergear_womens
 from improved_matcher import (
     get_multi_scale_embeddings,
     compute_advanced_similarity,
@@ -69,7 +70,7 @@ def search():
 
         ad_file = request.files["image"]
         top_x = int(request.form.get("top_x", 5))
-        target_url = request.form.get("target_url", "https://usa.tommy.com/en/women")
+        target_url = request.form.get("target_url", "bouldergear.com")
         deduplicate = request.form.get("deduplicate") == "on"  # Checkbox value
 
         # Reset progress
@@ -92,7 +93,17 @@ def search():
                 progress_data.update(data)
 
         print(f"Scraping products from {target_url} ...")
-        scraper_result = scrape_us_tommy(target_url, progress_callback=update_progress)
+
+        # Route to appropriate scraper
+        if "bouldergear.com" in target_url:
+            scraper_result = scrape_bouldergear_womens(progress_callback=update_progress)
+        elif ".myshopify.com" in target_url or any(domain in target_url for domain in ["allbirds", "gymshark", "fashionnova"]):
+            scraper_result = scrape_shopify_url(target_url, progress_callback=update_progress)
+        elif "tommy.com" in target_url:
+            scraper_result = scrape_us_tommy(target_url, progress_callback=update_progress)
+        else:
+            # Default to Boulder Gear for unknown URLs
+            scraper_result = scrape_bouldergear_womens(progress_callback=update_progress)
 
         # Extract products and metadata from scraper result
         products = scraper_result.get("products", [])
